@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { catchError, concatMap, EMPTY, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { catchError, map, Observable, of, switchMap, tap, throwError,  } from 'rxjs';
 import { Product } from './product';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { HttpErrorService } from '../utilities/http-error.service';
@@ -16,6 +16,16 @@ export class ProductService {
   private http = inject(HttpClient);
   private reviewService = inject(ReviewService);
   private errorService = inject(HttpErrorService);
+
+  // readonly products$ = this.http.get<Product[]>(this.productsUrl).pipe(
+  //   tap(() => console.log('in http.get pipeline')),
+  //   catchError(err => this.handlerError(err)),
+  // );
+  // // products = tosignal()
+
+  // aa = toSignal();
+  readonly products$ = this.http.get<Product[]>(this.productsUrl);
+  // products = toSignal(this.products$);
 
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(this.productsUrl).pipe(

@@ -4,6 +4,7 @@ import { NgIf, NgFor, CurrencyPipe } from '@angular/common';
 import { Product } from '../product';
 import { ProductService } from '../product.service';
 import { catchError, EMPTY, Subscription, tap } from 'rxjs';
+import { CartService } from 'src/app/cart/cart.service';
 
 @Component({
   selector: 'pm-product-detail',
@@ -15,6 +16,7 @@ export class ProductDetailComponent implements OnChanges, OnDestroy {
   @Input() productId: number = 0;
   errorMessage = '';
   private productService = inject(ProductService);
+  private cartService = inject(CartService);
   private subs = new Subscription()
   // Product to display
   product: Product | null = null;
@@ -41,5 +43,6 @@ export class ProductDetailComponent implements OnChanges, OnDestroy {
 
 
   addToCart(product: Product) {
+    this.cartService.addToCart(product);
   }
 }
