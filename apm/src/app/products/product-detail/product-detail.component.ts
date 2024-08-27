@@ -1,9 +1,7 @@
-import { Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
-
+import { Component, computed, inject } from '@angular/core';
 import { NgIf, NgFor, CurrencyPipe } from '@angular/common';
 import { Product } from '../product';
 import { ProductService } from '../product.service';
-import { catchError, EMPTY, Subscription, tap } from 'rxjs';
 import { CartService } from 'src/app/cart/cart.service';
 
 @Component({
@@ -12,35 +10,19 @@ import { CartService } from 'src/app/cart/cart.service';
   standalone: true,
   imports: [NgIf, NgFor, CurrencyPipe]
 })
-export class ProductDetailComponent implements OnChanges, OnDestroy {
-  @Input() productId: number = 0;
-  errorMessage = '';
+export class ProductDetailComponent {
   private productService = inject(ProductService);
   private cartService = inject(CartService);
-  private subs = new Subscription()
+
   // Product to display
-  product: Product | null = null;
+  product = this.productService.product
+  errorMessage = this.productService.productError;
 
   // Set the page title
-  pageTitle = this.product ? `Product Detail for: ${this.product.productName}` : 'Product Detail';
-
-  ngOnChanges(changes: SimpleChanges): void {
-    const id = changes["productId"].currentValue;
-    if (id) {
-      this.subs.add(this.productService.getProduct(id)
-        .pipe(
-          tap(() => console.log("in component detail")),
-          catchError(err => { this.errorMessage = err; return EMPTY; })
-        ).subscribe(
-          product => this.product = product
-        )
-      );
-    }
-  }
-  ngOnDestroy(): void {
-    this.subs.unsubscribe();
-  }
-
+  pageTitle = computed(() => {
+    const p = this.product()
+    return (p) ? `Product Detail for: ${p.productName}` : 'Product Detail'
+  });
 
   addToCart(product: Product) {
     this.cartService.addToCart(product);

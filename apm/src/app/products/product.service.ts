@@ -1,6 +1,7 @@
-import { Injectable, inject } from '@angular/core';
-import { catchError, map, Observable, of, switchMap, tap, throwError,  } from 'rxjs';
-import { Product } from './product';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { catchError, filter, map, Observable, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { Product, Result } from './product';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { HttpErrorService } from '../utilities/http-error.service';
 import { Review } from '../reviews/review';
@@ -17,32 +18,42 @@ export class ProductService {
   private reviewService = inject(ReviewService);
   private errorService = inject(HttpErrorService);
 
-  // readonly products$ = this.http.get<Product[]>(this.productsUrl).pipe(
-  //   tap(() => console.log('in http.get pipeline')),
-  //   catchError(err => this.handlerError(err)),
-  // );
-  // // products = tosignal()
+  selectedProductId = signal<number>(undefined!);
+  effectSelectedProductId = effect(() => console.log(`selectedProductId=${this.selectedProductId()}`))
 
-  // aa = toSignal();
-  readonly products$ = this.http.get<Product[]>(this.productsUrl);
-  // products = toSignal(this.products$);
 
-  getProducts(): Observable<Product[]> {
-    return this.http.get<Product[]>(this.productsUrl).pipe(
-      tap(() => console.log('in http.get pipeline')),
-      catchError(err => this.handlerError(err)),
-    );
-  }
+  private productsResult$ = this.http.get<Product[]>(this.productsUrl).pipe(
+    map(p => ({ data: p } as Result<Product[]>)),
+    tap(p => console.log(JSON.stringify(p))),
+    shareReplay(1),
+    catchError(err => of({ data: [], error: this.errorService.formatError(err) } as Result<Product[]>)),
+  );
+  private productsResult = toSignal(this.productsResult$, { initialValue: { data: [] } as Result<Product[]> });
+  products = computed(() => this.productsResult()?.data)
+  productsError = computed(() => this.productsResult()?.error)
+  effectProductError = effect(() => console.log(this.productsError()))
 
-  getProduct(id: number): Observable<Product> {
-    const productsUrl = `${this.productsUrl}/${id}`;
-    return this.http.get<Product>(productsUrl)
-      .pipe(
-        // tap(_ => console.log('in http.get by id pipeline 1')),
-        switchMap(product => this.getProductWithReview(product)),
-        catchError(err => this.handlerError(err)),
-        // tap(_ => console.log('in http.get by id pipeline 2')),
-      );
+  private productResult$ = toObservable(this.selectedProductId).pipe(
+    filter(Boolean),
+    switchMap(id => {
+      const productsUrl = `${this.productsUrl}/${id}`;
+      return this.http.get<Product>(productsUrl)
+        .pipe(
+          switchMap(product => this.getProductWithReview(product)),
+          catchError(err => of({
+            data: undefined,
+            error: this.errorService.formatError(err)
+          } as Result<Product>)),
+        );
+    }),
+    map(p => ({ data: p } as Result<Product>))
+  );
+  private productResult = toSignal(this.productResult$, { initialValue: { data: undefined } as Result<Product> });
+  product = computed(() => this.productResult()?.data);
+  productError = computed(() => this.productResult()?.error);
+
+  productSelected(selectedProductId: number): void {
+    this.selectedProductId.set(selectedProductId);
   }
 
   getProductWithReview(product: Product): Observable<Product> {
