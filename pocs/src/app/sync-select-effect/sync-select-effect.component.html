@@ -1,0 +1,31 @@
+<div class="container">
+   <h3>{{pageTitle}}</h3>
+ 
+   <div class="grid">
+     <div class="row">
+       <select class="select" (change)="onSelectedMember($event.target)">
+         <option value="" disabled selected>--Select a team member--</option>
+         @for(member of members(); track member.id) {
+           <option [value]='member.id'>{{ member.name }}</option>
+         }
+       </select>
+     </div>
+
+     @let todos = todosForMember();
+     @if (todos) {
+     <div class="row">
+      <select class="select" (change)="onSelectedTask($event.target)">
+         <option value="" selected>--Select a task--</option>
+         @for(t of todos; track t.id) {
+           <option [value]='t.id'>{{ t.title }}</option>
+         }
+       </select>
+     </div>
+   }
+   </div>
+
+   @let message = errorMessage();
+   @if (message) {
+     <div>Error: {{ message }}</div>
+   }
+</div>
